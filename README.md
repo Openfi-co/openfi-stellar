@@ -26,6 +26,11 @@ Run of 2026-11-07 with Circle's testnet USDC. Every row is verifiable on the exp
 | Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [255681d5…](https://stellar.expert/explorer/testnet/tx/255681d59fcfc243dc51396017e5bc6be0a719fbe5e8ae6020228d5f61197e49) |
 | Mandate revoked | [43b24e03…](https://stellar.expert/explorer/testnet/tx/43b24e037eadfe15bab3e2c5cc4b716df34f4a6db818948e3f9368f6f0f5781e) |
 | $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [ecefdd52…](https://stellar.expert/explorer/testnet/tx/ecefdd529e0dddd2fa2fb103f4722691297b724d82b7d1c9ef125edc2dc03594) |
+| Expiry (`scripts/expiry-demo.js`): mandate #2 created with a 60-second expiry | [4d55c212…](https://stellar.expert/explorer/testnet/tx/4d55c212d2c5bab9d45ddba35cf87a6ad5e520e997e164cff07b32e9c538a74d) |
+| $1 transfer before expiry accepted | [bda72768…](https://stellar.expert/explorer/testnet/tx/bda72768d042da8fb42a9c54d1785039085613a2b50f30f8f765945091f8ac95) |
+| $1 transfer after expiry rejected on-chain (`Error(Contract, #4)`, MandateExpired) | [ec465f6c…](https://stellar.expert/explorer/testnet/tx/ec465f6cd7334a98fad23f4c3758b9ffa6469dba426cc2011f04299e63ca3a82) |
+
+**Testnet resets.** Stellar testnet is periodically reset (next scheduled: 16 Dec 2026), which removes these contracts and transactions from the explorer. The Horizon records of every transaction above are archived in [`evidence/2026-11-07/`](evidence/2026-11-07/) (each includes the signed envelope, result and ledger). After a reset, redeploy and re-run `scripts/demo.js` to regenerate live links.
 
 ## How it works
 

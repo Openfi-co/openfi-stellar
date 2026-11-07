@@ -1,0 +1,11 @@
+{
+  "name": "openfi-stellar-scripts",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "16.4.1"
+  }
+}

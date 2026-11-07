@@ -1,0 +1,15 @@
+# Rust's output directory
+target
+
+# Local settings
+.soroban
+.stellar
+
+# Node
+node_modules
+
+# Local run artifacts
+.smoke-contract
+.demo-run.log
+.env
+.DS_Store

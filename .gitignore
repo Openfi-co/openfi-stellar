@@ -13,3 +13,5 @@ node_modules
 .demo-run.log
 .env
 .DS_Store
+.router-contract
+.settle-server.log

@@ -25,6 +25,7 @@ const log = (step, r) => {
 };
 
 console.log(`Allowance account: ${contractUrl(ACCOUNT)}`);
+console.log(`Token:             ${contractUrl(TOKEN)}${process.env.TOKEN_LABEL ? ` (${process.env.TOKEN_LABEL})` : ''}`);
 
 // A fresh session key for the agent. Only its public key goes on-chain.
 const agent = Keypair.random();

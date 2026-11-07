@@ -13,16 +13,17 @@ OpenFi lets treasury teams and AI agents pull funds from bank accounts under on-
 
 ## Testnet evidence
 
-Run of 2026-11-05 using the testnet native-asset contract as the token. The final evidence run uses testnet USDC.
+Run of 2026-11-07 with Circle's testnet USDC. Every row is verifiable on the explorer; the two failed transactions show the contract's error code in their diagnostic events.
 
 | Item | Link |
 |---|---|
-| Allowance account contract | [CBQTIOUH…KH5L](https://stellar.expert/explorer/testnet/contract/CBQTIOUHNF55RRED3TOHP6NYGC3B6Q72W5JYYEW2WXZNJSW4M4H7KH5L) |
-| Mandate #8 created ($50/day cap) | [c7509809…](https://stellar.expert/explorer/testnet/tx/c7509809bfdfedd9d2b36bc7bc58be685107f426eaf2a90b0ad6306396780b93) |
-| $30 transfer accepted | [e74537f7…](https://stellar.expert/explorer/testnet/tx/e74537f74b197a1ed7b1bd5485727849142305a0ff23d4b66f3105c074bc51ed) |
-| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [53684c3d…](https://stellar.expert/explorer/testnet/tx/53684c3d18c0ce7ec063a552307654e0054c5428d63446a2338f2b13178f8450) |
-| Mandate revoked | [d1c93a17…](https://stellar.expert/explorer/testnet/tx/d1c93a17f27e0c1100b120cdcefd8b92bc042dbdf6f0d60d28dadd9ca2fe5c77) |
-| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [096d0c57…](https://stellar.expert/explorer/testnet/tx/096d0c57e29bc5957d29de2912718f2ca66168bb839419c8bbfb2c86fc717a08) |
+| Allowance account contract | [CCA3E57A…HIQAU](https://stellar.expert/explorer/testnet/contract/CCA3E57AE4TU3LDTKCREKXTGGJZVDOT2DXCXXSHMUGOL3EBD467HIQAU) |
+| Token: USDC (testnet) | [CBIELTK6…DAMA](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
+| Mandate #1 created ($50/day cap) | [0ca7dd16…](https://stellar.expert/explorer/testnet/tx/0ca7dd16b76aff3356702fb6c908665563f5473dadc96e0181b4e491a1b97de8) |
+| $30 transfer accepted | [c6834b9a…](https://stellar.expert/explorer/testnet/tx/c6834b9a36be8b3ba1a2e099ed0802e834d0b27f89943c548c54c91adf12ced9) |
+| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [255681d5…](https://stellar.expert/explorer/testnet/tx/255681d59fcfc243dc51396017e5bc6be0a719fbe5e8ae6020228d5f61197e49) |
+| Mandate revoked | [43b24e03…](https://stellar.expert/explorer/testnet/tx/43b24e037eadfe15bab3e2c5cc4b716df34f4a6db818948e3f9368f6f0f5781e) |
+| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [ecefdd52…](https://stellar.expert/explorer/testnet/tx/ecefdd529e0dddd2fa2fb103f4722691297b724d82b7d1c9ef125edc2dc03594) |
 
 ## How it works
 

@@ -15,3 +15,5 @@ node_modules
 .DS_Store
 .router-contract
 .settle-server.log
+.tunnel.log
+.sidecar.log

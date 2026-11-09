@@ -9,7 +9,7 @@ OpenFi lets treasury teams and AI agents pull funds from bank accounts under on-
 | Allowance State Machine (cap per epoch, expiry, revoke, destination allowlist) | **Real**, deployed on testnet |
 | Credential Registry check at mandate creation | **Stubbed**: an issuer-maintained allowlist (`set_verified`). The full Registry is a funded deliverable. |
 | Settlement Router: releases USDC for a cleared bank debit, idempotent per payment ID | **Real**, deployed on testnet ([CDG3QJXN…KJCI](https://stellar.expert/explorer/testnet/contract/CDG3QJXN5CSDH7MXH5FXQVLG4O5GAYXJWCBHCTK3AMCN45QA3MWLKJCI)) |
-| Bank-debit webhook listener (`scripts/settle-server.js`) | **Real**. Verified on testnet with a locally signed test webhook ([settlement tx](https://stellar.expert/explorer/testnet/tx/ec353e18bf9ca1f73f50247a4004f64bb212e6bced29c952cd79e11e93ea2ebc)). Run against the open banking sandbox: in progress. |
+| Bank-debit webhook listener (`scripts/settle-server.js`) | **Real**. Driven end to end by a sandbox bank debit from Flick's open banking sandbox (see below). |
 | Router authority | Prototype uses a single key; production uses a threshold multisig. No mandate or Registry check inside the router yet (funded work). |
 | One token and one session key per mandate | Prototype limits. Multi-token and multi-key mandates are funded work. |
 
@@ -29,6 +29,17 @@ Run of 2026-11-07 with Circle's testnet USDC. Every row is verifiable on the exp
 | Expiry (`scripts/expiry-demo.js`): mandate #2 created with a 60-second expiry | [4d55c212…](https://stellar.expert/explorer/testnet/tx/4d55c212d2c5bab9d45ddba35cf87a6ad5e520e997e164cff07b32e9c538a74d) |
 | $1 transfer before expiry accepted | [bda72768…](https://stellar.expert/explorer/testnet/tx/bda72768d042da8fb42a9c54d1785039085613a2b50f30f8f765945091f8ac95) |
 | $1 transfer after expiry rejected on-chain (`Error(Contract, #4)`, MandateExpired) | [ec465f6c…](https://stellar.expert/explorer/testnet/tx/ec465f6cd7334a98fad23f4c3758b9ffa6469dba426cc2011f04299e63ca3a82) |
+
+### Sandbox bank debit to Stellar settlement
+
+Run of 2026-11-08. A $30.00 one-off USD bank debit was started in Flick's open banking sandbox (`scripts/start-debit.js`). When it cleared, the sandbox sent a signed `paid` webhook; the listener verified it, read the amount and destination from the charge, and the Settlement Router released 30 USDC into the mandate account. The bank charge ID is the topic of the on-chain `settled` event.
+
+The sandbox's bank leg ran on its deterministic mock (`live: false`); the HTTP contract, webhook payloads and signing are the same as with the live rail. The sandbox's first delivery timed out and was retried; the retry returned `already_settled` and nothing settled twice.
+
+| Item | Link |
+|---|---|
+| Bank charge `chg_mock_7d3158e2-38a6-4327-89c2-ea7ee6ebd043` ($30.00 + $0.30 fee) cleared, webhook delivered | sandbox |
+| Router `settle`: 30 USDC to the mandate account, `settled` event keyed by the charge ID | [8e2c4b73…](https://stellar.expert/explorer/testnet/tx/8e2c4b73269ad80df92181b2bb0a2ba66a5865ca202f84c1b943b3eaca4b6a1f) |
 
 **Testnet resets.** Stellar testnet is periodically reset (next scheduled: 16 Dec 2026), which removes these contracts and transactions from the explorer. The Horizon records of every transaction above are archived in [`evidence/2026-11-07/`](evidence/2026-11-07/) (each includes the signed envelope, result and ledger). After a reset, redeploy and re-run `scripts/demo.js` to regenerate live links.
 

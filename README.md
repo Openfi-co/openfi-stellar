@@ -21,25 +21,25 @@ Run of 2026-11-09 (UTC) with Circle's testnet USDC, the same run as the demo vid
 |---|---|
 | Allowance account contract | [CCA3E57A…HIQAU](https://stellar.expert/explorer/testnet/contract/CCA3E57AE4TU3LDTKCREKXTGGJZVDOT2DXCXXSHMUGOL3EBD467HIQAU) |
 | Token: USDC (testnet) | [CBIELTK6…DAMA](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
-| Mandate created ($50/day cap) | [035f94e9…](https://stellar.expert/explorer/testnet/tx/035f94e94b6619b3537ffb61b262a75c3d0e346c965b32180681bc0da22f297c) |
-| $30 transfer accepted | [c03df68d…](https://stellar.expert/explorer/testnet/tx/c03df68d76ab7192d4ec595cfedab99c78fb5b3028a3357f66673c8b04f166f7) |
-| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [6c3e2248…](https://stellar.expert/explorer/testnet/tx/6c3e2248543299611a4c2edb3a245e06ab9a25939f4cb28c7c4611710d38d995) |
-| Mandate revoked | [6874f061…](https://stellar.expert/explorer/testnet/tx/6874f06130a4629b8de6cc543943112c9f22257a7eb28086d2ce357b51215fee) |
-| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [ff68b656…](https://stellar.expert/explorer/testnet/tx/ff68b6564b61254b2a25aad90187f207580d9e729a80533063fb47d65ddf08c2) |
+| Mandate created ($50/day cap) | [54c3f53b…](https://stellar.expert/explorer/testnet/tx/54c3f53b061564f964481bd9682fa9f5f704c9733858b8bb7cdf92afa720a333) |
+| $30 transfer accepted | [996380ec…](https://stellar.expert/explorer/testnet/tx/996380ec85e953ca9b7e1b239c9a3634a886b573ac348090057301a3ec66e7e8) |
+| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [3f4e3639…](https://stellar.expert/explorer/testnet/tx/3f4e363966530878b2a3437439335ea3231414de2f61819206d490c1a2e703b1) |
+| Mandate revoked | [cb254d06…](https://stellar.expert/explorer/testnet/tx/cb254d0693cf0000a44e11adcb21890671a80e598eca8e75f0fea119d76a39d0) |
+| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [36efe3f1…](https://stellar.expert/explorer/testnet/tx/36efe3f1f02e15712d22cf014aa8094121ebc67a411c65d18f8576c4a8fcca41) |
 | Expiry (`scripts/expiry-demo.js`): mandate #2 created with a 60-second expiry | [4d55c212…](https://stellar.expert/explorer/testnet/tx/4d55c212d2c5bab9d45ddba35cf87a6ad5e520e997e164cff07b32e9c538a74d) |
 | $1 transfer before expiry accepted | [bda72768…](https://stellar.expert/explorer/testnet/tx/bda72768d042da8fb42a9c54d1785039085613a2b50f30f8f765945091f8ac95) |
 | $1 transfer after expiry rejected on-chain (`Error(Contract, #4)`, MandateExpired) | [ec465f6c…](https://stellar.expert/explorer/testnet/tx/ec465f6cd7334a98fad23f4c3758b9ffa6469dba426cc2011f04299e63ca3a82) |
 
 ### Sandbox bank debit to Stellar settlement
 
-Same run. The owner's sandbox bank account (First Example Bank, checking ••••4821) was linked, and a $30.00 one-off USD bank debit was started in Flick's open banking sandbox (`scripts/start-debit.js`). When it cleared, the sandbox sent a signed `paid` webhook; the listener verified it, read the amount and destination from the charge, and the Settlement Router released 30 USDC into the mandate account. The bank charge ID is the topic of the on-chain `settled` event.
+Same run. In Flick's open banking sandbox checkout, the payer linked a sandbox bank account (First Example Bank, checking ••••4821) and authorized a $30.00 one-off USD bank debit. (`scripts/start-debit.js` starts the same kind of debit through the API.) When it cleared, the sandbox sent a signed `paid` webhook; the listener verified it, read the amount and destination from the charge, and the Settlement Router released 30 USDC into the mandate account. The bank charge ID is the topic of the on-chain `settled` event.
 
 The sandbox's bank leg ran on its deterministic mock (`live: false`); the HTTP contract, webhook payloads and signing are the same as with the live rail.
 
 | Item | Link |
 |---|---|
-| Bank charge `chg_mock_00762ff4-69e3-48cd-bcbd-32cdcf04cdd8` ($30.00 + $0.30 fee) cleared, webhook delivered | sandbox |
-| Router `settle`: 30 USDC to the mandate account, `settled` event keyed by the charge ID | [e268df6e…](https://stellar.expert/explorer/testnet/tx/e268df6e4c5ad6c9deab64e5e5bdc4f74c6019e015cde37819777a024e678aaf) |
+| Bank charge `chg_mock_9a2117c3-9646-455b-be4a-44490aa2b215` ($30.00 + $0.30 fee) cleared, webhook delivered | sandbox |
+| Router `settle`: 30 USDC to the mandate account, `settled` event keyed by the charge ID | [8cd25770…](https://stellar.expert/explorer/testnet/tx/8cd25770d3de18256789e72fdfadf55049dd49ce8efdbdf2f7603cd9f3d44b27) |
 
 **Testnet resets.** Stellar testnet is periodically reset (next scheduled: 16 Dec 2026), which removes these contracts and transactions from the explorer. The Horizon records of every transaction above are archived in [`evidence/`](evidence/) (each includes the signed envelope, result and ledger). After a reset, redeploy and re-run `scripts/demo.js` to regenerate live links.
 

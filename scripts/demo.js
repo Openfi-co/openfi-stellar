@@ -12,7 +12,7 @@ import { Keypair, nativeToScVal, xdr } from '@stellar/stellar-sdk';
 import {
   addr, agentTransfer, bytes, contractUrl, i128, invoke, kp, read, txUrl, u64, units,
 } from './lib.js';
-import { describeDebit, startDebit } from './start-debit.js';
+import { debitLinked, describeDebit, linkBank, maskedAccount } from './start-debit.js';
 
 const need = (k) => process.env[k] ?? (console.error(`missing env ${k}`), process.exit(1));
 const ACCOUNT = need('ACCOUNT_CONTRACT');
@@ -35,6 +35,11 @@ console.log(`Token:             ${contractUrl(TOKEN)}${process.env.TOKEN_LABEL ?
 // A fresh session key for the agent. Only its public key goes on-chain.
 const agent = Keypair.random();
 
+// BANK_DEBIT=1: link the owner's (sandbox) bank account first; it funds the
+// mandate account through a bank debit below.
+const link = process.env.BANK_DEBIT ? await linkBank({ base: need('BANK_API_BASE'), usd: 30 }) : null;
+if (link) console.log(`\nBank account linked (sandbox)\n  ${maskedAccount(link)}`);
+
 // 1. Owner creates a $50/day mandate for the agent.
 const created = await invoke(ACCOUNT, 'create_mandate', [
   bytes(agent.rawPublicKey()),
@@ -45,21 +50,21 @@ const created = await invoke(ACCOUNT, 'create_mandate', [
   xdr.ScVal.scvVec([addr(PAYEE)]),
 ], owner);
 const mandateId = created.returnValue;
-log(`Mandate #${mandateId} created: $50/day cap, 30-day expiry`, created);
+log(`Mandate #${mandateId} created: $50/day cap, 30-day expiry${link ? `\n  funding source: ${maskedAccount(link)}` : ''}`, created);
 
-// BANK_DEBIT=1: a $30 sandbox bank debit funds the mandate account. The
-// settlement listener (settle-server.js) settles it through the router.
-if (process.env.BANK_DEBIT) {
-  const debit = await startDebit({ base: need('BANK_API_BASE'), destination: ACCOUNT, usd: 30 });
-  console.log(`\nSandbox bank debit\n  ${describeDebit(debit)}`);
+// The bank debit funds the mandate account; settle-server.js settles it
+// through the router when the sandbox reports it paid.
+if (link) {
+  const payment = await debitLinked(link, ACCOUNT);
+  console.log(`\nSandbox bank debit\n  ${describeDebit(payment, link)}`);
   const router = need('ROUTER_CONTRACT');
-  const id = nativeToScVal(debit.payment.chargeId, { type: 'string' });
+  const id = nativeToScVal(payment.chargeId, { type: 'string' });
   let ledger = null;
   for (let i = 0; i < 45 && ledger == null; i++) {
     await new Promise((r) => setTimeout(r, 2000));
     ledger = await read(router, 'settled_at', [id], relayer);
   }
-  console.log(ledger == null ? '  not settled yet: check the listener' : `  30 USDC settled on Stellar testnet in ledger ${ledger} (tx link in the listener log)`);
+  console.log(ledger == null ? '  not settled yet: check the listener' : `  30 USDC settled on Stellar testnet in ledger ${ledger}`);
 }
 
 // PAUSE=1 stops here so another step (e.g. a bank debit) can run in between.

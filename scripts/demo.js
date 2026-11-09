@@ -10,7 +10,7 @@
 import { createInterface } from 'node:readline/promises';
 import { Keypair, nativeToScVal, xdr } from '@stellar/stellar-sdk';
 import {
-  addr, agentTransfer, bytes, contractUrl, i128, invoke, kp, read, txUrl, u64, units,
+  addr, agentTransfer, bytes, contractError, contractUrl, i128, invoke, kp, read, txUrl, u64, units,
 } from './lib.js';
 import { debitLinked, describeDebit, linkBank, maskedAccount } from './start-debit.js';
 
@@ -23,8 +23,9 @@ const relayer = kp(need('RELAYER_SECRET'));
 
 const DAY = 86_400;
 const rows = [];
-const log = (step, r) => {
-  const status = r.ok ? 'SUCCESS' : 'FAILED (rejected on-chain)';
+const log = async (step, r) => {
+  const err = r.ok ? null : await contractError(r.hash);
+  const status = r.ok ? 'SUCCESS' : `FAILED (rejected on-chain)${err ? `\n  on-chain error: ${err}` : ''}`;
   rows.push({ step, status, tx: txUrl(r.hash) });
   console.log(`\n${step}\n  ${status}\n  ${txUrl(r.hash)}`);
 };
@@ -38,7 +39,7 @@ const agent = Keypair.random();
 // BANK_DEBIT=1: link the owner's (sandbox) bank account first; it funds the
 // mandate account through a bank debit below.
 const link = process.env.BANK_DEBIT ? await linkBank({ base: need('BANK_API_BASE'), usd: 30 }) : null;
-if (link) console.log(`\nBank account linked (sandbox)\n  ${maskedAccount(link)}`);
+if (link) console.log(`\nBank account linked (sandbox, simulated bank)\n  ${maskedAccount(link)}`);
 
 // 1. Owner creates a $50/day mandate for the agent.
 const created = await invoke(ACCOUNT, 'create_mandate', [
@@ -50,13 +51,13 @@ const created = await invoke(ACCOUNT, 'create_mandate', [
   xdr.ScVal.scvVec([addr(PAYEE)]),
 ], owner);
 const mandateId = created.returnValue;
-log(`Mandate #${mandateId} created: $50/day cap, 30-day expiry${link ? `\n  funding source: ${maskedAccount(link)}` : ''}`, created);
+await log(`Mandate created: $50/day cap, 30-day expiry${link ? `\n  funding source: ${maskedAccount(link)}` : ''}`, created);
 
 // The bank debit funds the mandate account; settle-server.js settles it
 // through the router when the sandbox reports it paid.
 if (link) {
   const payment = await debitLinked(link, ACCOUNT);
-  console.log(`\nSandbox bank debit\n  ${describeDebit(payment, link)}`);
+  console.log(`\nSandbox bank debit (simulated bank)\n  ${describeDebit(payment, link)}`);
   const router = need('ROUTER_CONTRACT');
   const id = nativeToScVal(payment.chargeId, { type: 'string' });
   let ledger = null;
@@ -78,18 +79,18 @@ const pay = (amount) =>
   agentTransfer({ token: TOKEN, account: ACCOUNT, to: PAYEE, amount: units(amount), session: agent, relayer });
 
 // 2. $30: within cap.
-log('$30 transfer signed by the agent session key', await pay(30));
+await log('$30 transfer signed by the agent session key', await pay(30));
 console.log(`  remaining today: $${Number(await read(ACCOUNT, 'remaining', [u64(mandateId)], relayer)) / 1e7}`);
 
 // 3. Another $30: exceeds the $50/day cap.
-log('Second $30 transfer (would total $60 > $50 cap)', await pay(30));
+await log('Second $30 transfer (would total $60 > $50 cap)', await pay(30));
 console.log(`  remaining today: $${Number(await read(ACCOUNT, 'remaining', [u64(mandateId)], relayer)) / 1e7} (unchanged)`);
 
 // 4. Owner revokes the mandate.
-log(`Mandate #${mandateId} revoked by owner`, await invoke(ACCOUNT, 'revoke_mandate', [u64(mandateId)], owner));
+await log('Mandate revoked by owner', await invoke(ACCOUNT, 'revoke_mandate', [u64(mandateId)], owner));
 
 // 5. $1 after revocation.
-log('$1 transfer after revocation', await pay(1));
+await log('$1 transfer after revocation', await pay(1));
 
 console.log('\nSummary');
 console.table(rows);

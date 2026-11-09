@@ -227,3 +227,23 @@ async function agentTransferOnce({ token, account, to, amount, session, relayer 
 }
 
 export const kp = (secret) => Keypair.fromSecret(secret);
+
+const ALLOWANCE_ERRORS = {
+  1: 'NotVerified', 2: 'UnknownSessionKey', 3: 'MandateRevoked', 4: 'MandateExpired', 5: 'CapExceeded',
+  6: 'DestinationNotAllowed', 7: 'TokenNotAllowed', 8: 'FunctionNotAllowed', 9: 'BadArgs',
+  10: 'InvalidAmount', 11: 'InvalidMandate', 12: 'SessionKeyInUse', 13: 'UnknownMandate',
+};
+
+/** The allowance contract error recorded in a failed transaction, e.g. "Error(Contract, #5) CapExceeded". */
+export async function contractError(hashHex) {
+  const r = await server.getTransaction(hashHex);
+  for (const e of r.diagnosticEventsXdr ?? []) {
+    for (const t of e.event().body().v0().topics()) {
+      if (t.switch().name === 'scvError' && t.error().switch().name === 'sceContract') {
+        const code = t.error().contractCode();
+        return `Error(Contract, #${code}) ${ALLOWANCE_ERRORS[code] ?? ''}`.trim();
+      }
+    }
+  }
+  return null;
+}

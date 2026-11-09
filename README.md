@@ -15,17 +15,17 @@ OpenFi lets treasury teams and AI agents pull funds from bank accounts under on-
 
 ## Testnet evidence
 
-Run of 2026-11-08 with Circle's testnet USDC (the same run as the demo video). Every row is verifiable on the explorer; the two failed transactions show the contract's error code in their diagnostic events.
+Run of 2026-11-09 (UTC) with Circle's testnet USDC, the same run as the demo video. Every row is verifiable on the explorer; the two failed transactions show the contract's error code in their diagnostic events.
 
 | Item | Link |
 |---|---|
 | Allowance account contract | [CCA3E57A…HIQAU](https://stellar.expert/explorer/testnet/contract/CCA3E57AE4TU3LDTKCREKXTGGJZVDOT2DXCXXSHMUGOL3EBD467HIQAU) |
 | Token: USDC (testnet) | [CBIELTK6…DAMA](https://stellar.expert/explorer/testnet/contract/CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA) |
-| Mandate #6 created ($50/day cap) | [00320135…](https://stellar.expert/explorer/testnet/tx/00320135b7f5c3dd649c573e1739a73cff64875e982b0621feba2883c1408f71) |
-| $30 transfer accepted | [8aa91104…](https://stellar.expert/explorer/testnet/tx/8aa911040b1dd5a4a5578508ffca72b48db197d09b1aeac8093c409642145668) |
-| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [e738506d…](https://stellar.expert/explorer/testnet/tx/e738506d395a170f28dafe5c8ace8eed04d59b6db948e9c6ce8453b871101a3c) |
-| Mandate revoked | [ece7d67b…](https://stellar.expert/explorer/testnet/tx/ece7d67b33d6f8a587e5bb6dea5f22c98aa89d8fb604c0b529aab8de2912226b) |
-| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [8afb161e…](https://stellar.expert/explorer/testnet/tx/8afb161e105529f0abdf38232f0c6afc9fdeab121ef1ade15304b91625f37aaf) |
+| Mandate created ($50/day cap) | [035f94e9…](https://stellar.expert/explorer/testnet/tx/035f94e94b6619b3537ffb61b262a75c3d0e346c965b32180681bc0da22f297c) |
+| $30 transfer accepted | [c03df68d…](https://stellar.expert/explorer/testnet/tx/c03df68d76ab7192d4ec595cfedab99c78fb5b3028a3357f66673c8b04f166f7) |
+| Second $30 transfer rejected on-chain (`Error(Contract, #5)`, CapExceeded) | [6c3e2248…](https://stellar.expert/explorer/testnet/tx/6c3e2248543299611a4c2edb3a245e06ab9a25939f4cb28c7c4611710d38d995) |
+| Mandate revoked | [6874f061…](https://stellar.expert/explorer/testnet/tx/6874f06130a4629b8de6cc543943112c9f22257a7eb28086d2ce357b51215fee) |
+| $1 transfer after revocation rejected on-chain (`Error(Contract, #3)`, MandateRevoked) | [ff68b656…](https://stellar.expert/explorer/testnet/tx/ff68b6564b61254b2a25aad90187f207580d9e729a80533063fb47d65ddf08c2) |
 | Expiry (`scripts/expiry-demo.js`): mandate #2 created with a 60-second expiry | [4d55c212…](https://stellar.expert/explorer/testnet/tx/4d55c212d2c5bab9d45ddba35cf87a6ad5e520e997e164cff07b32e9c538a74d) |
 | $1 transfer before expiry accepted | [bda72768…](https://stellar.expert/explorer/testnet/tx/bda72768d042da8fb42a9c54d1785039085613a2b50f30f8f765945091f8ac95) |
 | $1 transfer after expiry rejected on-chain (`Error(Contract, #4)`, MandateExpired) | [ec465f6c…](https://stellar.expert/explorer/testnet/tx/ec465f6cd7334a98fad23f4c3758b9ffa6469dba426cc2011f04299e63ca3a82) |
@@ -38,8 +38,8 @@ The sandbox's bank leg ran on its deterministic mock (`live: false`); the HTTP c
 
 | Item | Link |
 |---|---|
-| Bank charge `chg_mock_9ee9d5eb-a491-448b-87cc-c4cee7ec733c` ($30.00 + $0.30 fee) cleared, webhook delivered | sandbox |
-| Router `settle`: 30 USDC to the mandate account, `settled` event keyed by the charge ID | [9f899b22…](https://stellar.expert/explorer/testnet/tx/9f899b22737f2c593b313285357d92494c8ca40cce79763b1f25815739eb4f4c) |
+| Bank charge `chg_mock_00762ff4-69e3-48cd-bcbd-32cdcf04cdd8` ($30.00 + $0.30 fee) cleared, webhook delivered | sandbox |
+| Router `settle`: 30 USDC to the mandate account, `settled` event keyed by the charge ID | [e268df6e…](https://stellar.expert/explorer/testnet/tx/e268df6e4c5ad6c9deab64e5e5bdc4f74c6019e015cde37819777a024e678aaf) |
 
 **Testnet resets.** Stellar testnet is periodically reset (next scheduled: 16 Dec 2026), which removes these contracts and transactions from the explorer. The Horizon records of every transaction above are archived in [`evidence/`](evidence/) (each includes the signed envelope, result and ledger). After a reset, redeploy and re-run `scripts/demo.js` to regenerate live links.
 

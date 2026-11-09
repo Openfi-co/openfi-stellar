@@ -34,7 +34,7 @@ Run of 2026-11-07 with Circle's testnet USDC. Every row is verifiable on the exp
 
 Run of 2026-11-08. A $30.00 one-off USD bank debit was started in Flick's open banking sandbox (`scripts/start-debit.js`). When it cleared, the sandbox sent a signed `paid` webhook; the listener verified it, read the amount and destination from the charge, and the Settlement Router released 30 USDC into the mandate account. The bank charge ID is the topic of the on-chain `settled` event.
 
-The sandbox's bank leg ran on its deterministic mock (`live: false`); the HTTP contract, webhook payloads and signing are the same as with the live rail. The sandbox's first delivery timed out and was retried; the retry returned `already_settled` and nothing settled twice.
+The sandbox's bank leg ran on its deterministic mock (`live: false`); the HTTP contract, webhook payloads and signing are the same as with the live rail.
 
 | Item | Link |
 |---|---|

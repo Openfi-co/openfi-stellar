@@ -5,28 +5,37 @@
 //
 // Env: BANK_API_BASE, MANDATE_ACCOUNT.
 const need = (k) => process.env[k] ?? (console.error(`missing env ${k}`), process.exit(1));
-const BASE = need('BANK_API_BASE');
-const MANDATE_ACCOUNT = need('MANDATE_ACCOUNT');
-const [usd = '30', scenario = 'paid'] = process.argv.slice(2);
-const amountCents = Math.round(Number(usd) * 100);
 
-async function post(path, body) {
-  const res = await fetch(`${BASE}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+async function post(base, path, body) {
+  const res = await fetch(`${base}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const json = await res.json();
   if (!res.ok) throw new Error(`${path} ${res.status}: ${JSON.stringify(json)}`);
   return json;
 }
 
-// Sandbox payer and test account; the payer name must match the sandbox identity.
-const { customerId } = await post('/api/checkout/start', { amountCents, scenario });
-const paykey = await post('/api/paykey', { customerId, bankId: 'fe' });
-const { payment } = await post('/api/charges', {
-  customerId,
-  paykeyId: paykey.id,
-  fullName: 'Jordan Rivera',
-  agreed: true,
-  scenario,
-  metadata: { destination: MANDATE_ACCOUNT },
-});
-console.log(`debit ${payment.chargeId}: $${(payment.invoiceCents / 100).toFixed(2)} (+$${(payment.feeCents / 100).toFixed(2)} fee) from ${paykey.label}, status ${payment.status}`);
-console.log(payment.chargeId);
+/** Start a one-off sandbox debit tagged with `destination`. Returns the charge and the account label. */
+export async function startDebit({ base, destination, usd, scenario = 'paid' }) {
+  const amountCents = Math.round(Number(usd) * 100);
+  // Sandbox payer and test account; the payer name must match the sandbox identity.
+  const { customerId } = await post(base, '/api/checkout/start', { amountCents, scenario });
+  const paykey = await post(base, '/api/paykey', { customerId, bankId: 'fe' });
+  const { payment } = await post(base, '/api/charges', {
+    customerId,
+    paykeyId: paykey.id,
+    fullName: 'Jordan Rivera',
+    agreed: true,
+    scenario,
+    metadata: { destination },
+  });
+  return { payment, account: paykey.label };
+}
+
+export const describeDebit = ({ payment, account }) =>
+  `debit ${payment.chargeId}: $${(payment.invoiceCents / 100).toFixed(2)} (+$${(payment.feeCents / 100).toFixed(2)} fee) from ${account}, status ${payment.status}`;
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const [usd = '30', scenario = 'paid'] = process.argv.slice(2);
+  const debit = await startDebit({ base: need('BANK_API_BASE'), destination: need('MANDATE_ACCOUNT'), usd, scenario });
+  console.log(describeDebit(debit));
+  console.log(debit.payment.chargeId);
+}

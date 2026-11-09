@@ -1,13 +1,18 @@
 // One-command demo: an agent spends under a $50/day mandate, enforced on-chain.
 //
-//   node demo.js
+//   node demo.js                 agent spending only
+//   BANK_DEBIT=1 node demo.js    plus a sandbox bank debit that funds the account
 //
 // Env: ACCOUNT_CONTRACT (deployed allowance account), TOKEN (SAC address),
-//      PAYEE (G... address), OWNER_SECRET, RELAYER_SECRET.
-import { Keypair, xdr } from '@stellar/stellar-sdk';
+//      PAYEE (G... address), OWNER_SECRET, RELAYER_SECRET; with BANK_DEBIT also
+//      BANK_API_BASE and ROUTER_CONTRACT, and settle-server.js running.
+//      PAUSE=1 waits for Enter after the mandate is created.
+import { createInterface } from 'node:readline/promises';
+import { Keypair, nativeToScVal, xdr } from '@stellar/stellar-sdk';
 import {
   addr, agentTransfer, bytes, contractUrl, i128, invoke, kp, read, txUrl, u64, units,
 } from './lib.js';
+import { describeDebit, startDebit } from './start-debit.js';
 
 const need = (k) => process.env[k] ?? (console.error(`missing env ${k}`), process.exit(1));
 const ACCOUNT = need('ACCOUNT_CONTRACT');
@@ -40,7 +45,29 @@ const created = await invoke(ACCOUNT, 'create_mandate', [
   xdr.ScVal.scvVec([addr(PAYEE)]),
 ], owner);
 const mandateId = created.returnValue;
-log(`Mandate #${mandateId} created: $50/day cap, 30-day expiry, 1 allowed payee`, created);
+log(`Mandate #${mandateId} created: $50/day cap, 30-day expiry`, created);
+
+// BANK_DEBIT=1: a $30 sandbox bank debit funds the mandate account. The
+// settlement listener (settle-server.js) settles it through the router.
+if (process.env.BANK_DEBIT) {
+  const debit = await startDebit({ base: need('BANK_API_BASE'), destination: ACCOUNT, usd: 30 });
+  console.log(`\nSandbox bank debit\n  ${describeDebit(debit)}`);
+  const router = need('ROUTER_CONTRACT');
+  const id = nativeToScVal(debit.payment.chargeId, { type: 'string' });
+  let ledger = null;
+  for (let i = 0; i < 45 && ledger == null; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    ledger = await read(router, 'settled_at', [id], relayer);
+  }
+  console.log(ledger == null ? '  not settled yet: check the listener' : `  30 USDC settled on Stellar testnet in ledger ${ledger} (tx link in the listener log)`);
+}
+
+// PAUSE=1 stops here so another step (e.g. a bank debit) can run in between.
+if (process.env.PAUSE) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  await rl.question('\nPress Enter to continue...');
+  rl.close();
+}
 
 const pay = (amount) =>
   agentTransfer({ token: TOKEN, account: ACCOUNT, to: PAYEE, amount: units(amount), session: agent, relayer });
@@ -51,6 +78,7 @@ console.log(`  remaining today: $${Number(await read(ACCOUNT, 'remaining', [u64(
 
 // 3. Another $30: exceeds the $50/day cap.
 log('Second $30 transfer (would total $60 > $50 cap)', await pay(30));
+console.log(`  remaining today: $${Number(await read(ACCOUNT, 'remaining', [u64(mandateId)], relayer)) / 1e7} (unchanged)`);
 
 // 4. Owner revokes the mandate.
 log(`Mandate #${mandateId} revoked by owner`, await invoke(ACCOUNT, 'revoke_mandate', [u64(mandateId)], owner));

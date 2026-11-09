@@ -86,10 +86,13 @@ createServer((req, res) => {
     try {
       const instruction = await parseClearedDebit(JSON.parse(raw.toString('utf8')));
       if (!instruction) return json(res, 200, { status: 'ignored' });
+      // Acknowledge at once; on-chain settlement takes a few seconds and the
+      // sender should not time out and redeliver while it runs.
+      json(res, 202, { payment_id: instruction.paymentId, status: 'accepted' });
       console.log(`cleared debit ${instruction.paymentId}: $${instruction.amount} -> ${instruction.destination}`);
-      const out = await settle(instruction);
-      console.log(`  ${out.status}${out.tx ? ` ${out.tx}` : ''}`);
-      json(res, 200, { payment_id: instruction.paymentId, ...out });
+      settle(instruction)
+        .then((out) => console.log(`  ${out.status}${out.tx ? ` ${out.tx}` : ''}`))
+        .catch((e) => console.error(`  settlement error: ${e.message}`));
     } catch (e) {
       console.error(`  error: ${e.message}`);
       json(res, 500, { error: 'settlement_failed' });

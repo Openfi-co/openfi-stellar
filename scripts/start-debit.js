@@ -1,7 +1,7 @@
 // One-off USD bank debit in the open banking sandbox, tagged with the mandate
-// account it should settle into.
+// account and mandate it should settle into.
 //
-//   node start-debit.js <amount-usd> [scenario]     scenario: paid | returned | failed_insufficient_funds
+//   node start-debit.js <amount-usd> <mandate-id> [scenario]     scenario: paid | returned | failed_insufficient_funds
 //
 // Env: BANK_API_BASE, MANDATE_ACCOUNT.
 const need = (k) => process.env[k] ?? (console.error(`missing env ${k}`), process.exit(1));
@@ -28,14 +28,14 @@ export const maskedAccount = ({ paykey }) => {
 };
 
 /** Debit the linked account. The payer name must match the sandbox identity. */
-export async function debitLinked(link, destination) {
+export async function debitLinked(link, destination, mandateId) {
   const { payment } = await post(link.base, '/api/charges', {
     customerId: link.customerId,
     paykeyId: link.paykey.id,
     fullName: 'Jordan Rivera',
     agreed: true,
     scenario: link.scenario,
-    metadata: { destination },
+    metadata: { destination, mandate_id: String(mandateId) },
   });
   return payment;
 }
@@ -44,9 +44,10 @@ export const describeDebit = (payment, link) =>
   `debit ${payment.chargeId}: $${(payment.invoiceCents / 100).toFixed(2)} (+$${(payment.feeCents / 100).toFixed(2)} fee) from ${maskedAccount(link)}, status ${payment.status}`;
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const [usd = '30', scenario = 'paid'] = process.argv.slice(2);
+  const [usd = '30', mandateId, scenario = 'paid'] = process.argv.slice(2);
+  if (!/^\d+$/.test(mandateId ?? '')) (console.error('usage: node start-debit.js <amount-usd> <mandate-id> [scenario]'), process.exit(1));
   const link = await linkBank({ base: need('BANK_API_BASE'), usd, scenario });
-  const payment = await debitLinked(link, need('MANDATE_ACCOUNT'));
+  const payment = await debitLinked(link, need('MANDATE_ACCOUNT'), mandateId);
   console.log(describeDebit(payment, link));
   console.log(payment.chargeId);
 }

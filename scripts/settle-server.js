@@ -7,12 +7,16 @@
 //
 //   node settle-server.js
 //
+// The router pays only into an OpenFi allowance account that holds a live
+// mandate for its token, so every debit names the mandate it funds
+// (charge metadata `mandate_id`).
+//
 // Env: ROUTER_CONTRACT, SETTLEMENT_SECRET (router authority), MANDATE_ACCOUNT
 //      (default destination), WEBHOOK_SECRET, BANK_API_BASE (sandbox base URL),
 //      WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TIMESTAMP_HEADER, PORT (default 8787).
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
-import { addr, i128, invoke, kp, read, txUrl, units } from './lib.js';
+import { addr, i128, invoke, kp, read, txUrl, u64, units } from './lib.js';
 import { nativeToScVal } from '@stellar/stellar-sdk';
 
 const need = (k) => process.env[k] ?? (console.error(`missing env ${k}`), process.exit(1));
@@ -52,7 +56,14 @@ async function parseClearedDebit(body) {
   // Settle the invoice amount; the 1% rail fee is not converted.
   const cents = payment.invoiceCents ?? payment.amountCents;
   if (!(cents > 0)) throw new Error('missing amount');
-  return { paymentId: id, amount: cents / 100, destination: payment.metadata?.destination ?? MANDATE_ACCOUNT };
+  const mandateId = payment.metadata?.mandate_id;
+  if (!/^\d+$/.test(mandateId ?? '')) throw new Error(`charge ${id} has no mandate_id`);
+  return {
+    paymentId: id,
+    amount: cents / 100,
+    destination: payment.metadata?.destination ?? MANDATE_ACCOUNT,
+    mandateId: BigInt(mandateId),
+  };
 }
 
 /** Hex HMAC-SHA256 over `${timestamp}.${rawBody}`; reject stale timestamps. */
@@ -64,10 +75,10 @@ function verified(raw, sig, ts) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-async function settle({ paymentId, amount, destination }) {
+async function settle({ paymentId, amount, destination, mandateId }) {
   const already = await read(ROUTER, 'settled_at', [str(paymentId)], authority);
   if (already != null) return { status: 'already_settled', ledger: already };
-  const r = await invoke(ROUTER, 'settle', [str(paymentId), addr(destination), i128(units(amount))], authority);
+  const r = await invoke(ROUTER, 'settle', [str(paymentId), addr(destination), u64(mandateId), i128(units(amount))], authority);
   return { status: 'settled', tx: txUrl(r.hash) };
 }
 
@@ -89,7 +100,7 @@ createServer((req, res) => {
       // Acknowledge at once; on-chain settlement takes a few seconds and the
       // sender should not time out and redeliver while it runs.
       json(res, 202, { payment_id: instruction.paymentId, status: 'accepted' });
-      console.log(`cleared debit ${instruction.paymentId}: $${instruction.amount} -> ${instruction.destination}`);
+      console.log(`cleared debit ${instruction.paymentId}: $${instruction.amount} -> ${instruction.destination} (mandate ${instruction.mandateId})`);
       settle(instruction)
         .then((out) => console.log(`  ${out.status}${out.tx ? ` ${out.tx}` : ''}`))
         .catch((e) => console.error(`  settlement error: ${e.message}`));

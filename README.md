@@ -10,7 +10,8 @@ OpenFi lets treasury teams and AI agents pull funds from bank accounts under on-
 | Credential Registry check at mandate creation | **Stubbed**: an issuer-maintained allowlist (`set_verified`). The full Registry is a funded deliverable. |
 | Settlement Router: releases USDC for a cleared bank debit, idempotent per payment ID | **Real**, deployed on testnet ([CDG3QJXN…KJCI](https://stellar.expert/explorer/testnet/contract/CDG3QJXN5CSDH7MXH5FXQVLG4O5GAYXJWCBHCTK3AMCN45QA3MWLKJCI)) |
 | Bank-debit webhook listener (`scripts/settle-server.js`) | **Real**. Driven end to end by a sandbox bank debit from Flick's open banking sandbox (see below). |
-| Router authority | Prototype uses a single key; production uses a threshold multisig. No mandate or Registry check inside the router yet (funded work). |
+| Router pays only into a live mandate | **Real** in code: `settle` refuses any destination that does not run the allowance account code (Wasm hash checked on-chain) or whose mandate is unknown, revoked, expired or for another token. The testnet router linked above predates this check; redeploy pending. |
+| Router authority | Prototype uses a single key; production uses a threshold multisig. |
 | One token and one session key per mandate | Prototype limits. Multi-token and multi-key mandates are funded work. |
 
 ## Testnet evidence
@@ -80,22 +81,27 @@ Amounts are integers in the token's base units (7 decimals: 50 USDC = `500000000
 
 Contract: [`contracts/router/src/lib.rs`](contracts/router/src/lib.rs)
 
-When a bank debit clears off-chain, the settlement authority calls `settle(payment_id, destination, amount)`. The router pays from its pre-funded float into the destination (the owner's mandate account), stores the payment ID so the same debit can never settle twice, and emits `Settled{payment_id, token, destination, amount}`, which ties the bank payment to the on-chain transfer.
+When a bank debit clears off-chain, the settlement authority calls `settle(payment_id, destination, mandate_id, amount)`. The router pays from its pre-funded float into the destination (the owner's allowance account), stores the payment ID so the same debit can never settle twice, and emits `Settled{payment_id, token, destination, mandate_id, amount}`, which ties the bank payment to the on-chain transfer.
 
-`scripts/settle-server.js` receives the "payment cleared" webhook, checks its HMAC signature, maps it to a settlement (one function, `parseClearedDebit`, knows the payload shape) and calls the router. Redelivered webhooks return `already_settled`.
+The router never pays an arbitrary address, not even on the settlement authority's say-so. Before any transfer it checks, on-chain:
 
-Router errors: 1 DuplicatePayment, 2 InvalidAmount, 3 InvalidPaymentId.
+1. The destination is a contract running the allowance account code: its Wasm hash equals the hash fixed in the router's constructor. Wallets, asset contracts and look-alike contracts that answer `get_mandate` are refused before they are called.
+2. The account holds `mandate_id` (`get_mandate`), and the mandate is not revoked, not expired and is for the router's token.
+
+`scripts/settle-server.js` receives the "payment cleared" webhook, checks its HMAC signature, maps it to a settlement (one function, `parseClearedDebit`, knows the payload shape; the charge's `mandate_id` metadata names the mandate it funds) and calls the router. Redelivered webhooks return `already_settled`.
+
+Router errors: 1 DuplicatePayment, 2 InvalidAmount, 3 InvalidPaymentId, 4 NotAMandateAccount, 5 UnknownMandate, 6 MandateRevoked, 7 MandateExpired.
 
 ## Run the tests
 
 Requires Rust with the `wasm32v1-none` target and the [Stellar CLI](https://developers.stellar.org/docs/tools/cli).
 
 ```sh
+stellar contract build   # router tests load the built allowance Wasm
 cargo test
-stellar contract build
 ```
 
-Allowance tests cover: in-cap transfer passes, over-cap rejected, expired rejected, revoked rejected, cap resets next epoch, non-allowlisted destination rejected, unknown session key rejected, unverified owner cannot create a mandate. Router tests cover: settles once per payment ID (duplicate rejected), only the settlement authority can settle, invalid input rejected.
+Allowance tests cover: in-cap transfer passes, over-cap rejected, expired rejected, revoked rejected, cap resets next epoch, non-allowlisted destination rejected, unknown session key rejected, unverified owner cannot create a mandate. Router tests run against the real allowance Wasm and cover: settles once per payment ID (duplicate rejected), only the settlement authority can settle, invalid input rejected, refuses a wallet, the token contract, another contract and a look-alike that answers `get_mandate` (nothing moves), refuses an unknown, revoked, expired or other-token mandate, and reads the allowance mandate record field for field.
 
 ## Run the demo on testnet
 

@@ -56,7 +56,7 @@ await log(`Mandate created: $50/day cap, 30-day expiry${link ? `\n  funding sour
 // The bank debit funds the mandate account; settle-server.js settles it
 // through the router when the sandbox reports it paid.
 if (link) {
-  const payment = await debitLinked(link, ACCOUNT);
+  const payment = await debitLinked(link, ACCOUNT, mandateId);
   console.log(`\nSandbox bank debit (simulated bank)\n  ${describeDebit(payment, link)}`);
   const router = need('ROUTER_CONTRACT');
   const id = nativeToScVal(payment.chargeId, { type: 'string' });

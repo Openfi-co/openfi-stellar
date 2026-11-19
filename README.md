@@ -8,9 +8,9 @@ OpenFi lets treasury teams and AI agents pull funds from bank accounts under on-
 |---|---|
 | Allowance State Machine (cap per epoch, expiry, revoke, destination allowlist) | **Real**, deployed on testnet |
 | Credential Registry check at mandate creation | **Stubbed**: an issuer-maintained allowlist (`set_verified`). The full Registry is a funded deliverable. |
-| Settlement Router: releases USDC for a cleared bank debit, idempotent per payment ID | **Real**, deployed on testnet ([CDG3QJXN…KJCI](https://stellar.expert/explorer/testnet/contract/CDG3QJXN5CSDH7MXH5FXQVLG4O5GAYXJWCBHCTK3AMCN45QA3MWLKJCI)) |
+| Settlement Router: releases USDC for a cleared bank debit, idempotent per payment ID | **Real**, deployed on testnet ([CD5ITC5U…DKOC](https://stellar.expert/explorer/testnet/contract/CD5ITC5UHNNIEZO254RVAXNCHTWHYQN45I6KGUJYBNMOEYDD7EC2DKOC)). The evidence run below used the earlier router ([CDG3QJXN…KJCI](https://stellar.expert/explorer/testnet/contract/CDG3QJXN5CSDH7MXH5FXQVLG4O5GAYXJWCBHCTK3AMCN45QA3MWLKJCI)), which had no mandate check. |
 | Bank-debit webhook listener (`scripts/settle-server.js`) | **Real**. Driven end to end by a sandbox bank debit from Flick's open banking sandbox (see below). |
-| Router pays only into a live mandate | **Real** in code: `settle` refuses any destination that does not run the allowance account code (Wasm hash checked on-chain) or whose mandate is unknown, revoked, expired or for another token. The testnet router linked above predates this check; redeploy pending. |
+| Router pays only into a live mandate | **Real** in code: `settle` refuses any destination that does not run the allowance account code (Wasm hash checked on-chain) or whose mandate is unknown, revoked, expired or for another token. Live on the testnet router above: a 1 USDC settle into a live mandate ([129f1396…](https://stellar.expert/explorer/testnet/tx/129f139695fa9f80169138921e5581b5f44937f53922ff6471d345f5b729a5a5), `Settled` carries `mandate_id`). |
 | Router authority | Prototype uses a single key; production uses a threshold multisig. |
 | One token and one session key per mandate | Prototype limits. Multi-token and multi-key mandates are funded work. |
 
